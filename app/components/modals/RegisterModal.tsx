@@ -37,7 +37,7 @@ const RegisterModal = () => {
     const onSubmit: SubmitHandler<FieldValues> = useCallback(async (data) => {
         setIsLoading(true);
         
-        axios.post("/api/auth/register", data)
+        axios.post("/api/register", data)
             .then((res) => {
                 registerModal.close();
             })
