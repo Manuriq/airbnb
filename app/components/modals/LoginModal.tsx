@@ -1,5 +1,6 @@
 'use client'
 
+import { signIn } from "next-auth/react";
 import axios from "axios";
 import { AiFillGithub } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
@@ -10,6 +11,7 @@ import {
     useForm,
 } from "react-hook-form";
 
+import useLoginModal from "@/app/hooks/useLoginModal";
 import useRegisterModal from "@/app/hooks/useRegisterModal";
 import Modal from "./Modal";
 import Heading from "../Heading";
@@ -17,11 +19,12 @@ import Input from "../input/Input";
 import { toast } from "react-hot-toast";
 import { error } from "console";
 import Button from "../Button";
-import useLoginModal from "@/app/hooks/useLoginModal";
+import { useRouter } from "next/navigation";
 
-const RegisterModal = () => {
-    const registerModal = useRegisterModal();
-    const loginModal = useLoginModal();
+const LoginModal = () => {
+    const router = useRouter();
+    const RegisterModal = useRegisterModal();
+    const LoginModal = useLoginModal();
     const [isLoading, setIsLoading] = useState(false);
 
     const {
@@ -30,7 +33,6 @@ const RegisterModal = () => {
         formState: { errors },
     } = useForm<FieldValues>({
         defaultValues: {
-            name: "",
             email: "",
             password: "",
         }
@@ -39,17 +41,23 @@ const RegisterModal = () => {
     const onSubmit: SubmitHandler<FieldValues> = useCallback(async (data) => {
         setIsLoading(true);
         
-        axios.post("/api/register", data)
-            .then((res) => {
-                toast.success("Bienvenue sur le site!")
-                registerModal.close();
-            })
-            .catch((err) => {
-                toast.error("Quelque chose c'est mal passé")
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
+        signIn("credentials", {
+            ...data,
+            redirect: false,
+        }).then((response) => {
+            if (response?.error) {
+                toast.error(response.error);
+            } else {
+                toast.success("Vous êtes connecté !");
+                router.refresh();
+                LoginModal.close();
+            }
+        }).catch((error) => {
+            toast.error(error);
+        }).finally(() => {
+            setIsLoading(false);
+        });
+
     }, []);
     
 
@@ -59,21 +67,12 @@ const RegisterModal = () => {
         ">
             <Heading 
                 title="Bienvenue sur AirBnB"
-                subtitle="Créer un compte"
+                subtitle="Se connecter"
              />
              <Input 
                 id="email"
                 label="Email"
                 type="email"
-                required
-                disabled={isLoading}
-                register={register}
-                errors={errors}
-             />
-             <Input 
-                id="name"
-                label="Nom"
-                type="text"
                 required
                 disabled={isLoading}
                 register={register}
@@ -122,7 +121,7 @@ const RegisterModal = () => {
                         Vous avez déjà un compte ?
                     </div>
                     <div 
-                    onClick={loginModal.open}
+                    onClick={LoginModal.close}
                     className="
                         text-neutral-800
                         cursor-pointer
@@ -138,10 +137,10 @@ const RegisterModal = () => {
     return ( 
         <Modal
             disabled={isLoading}
-            isOpen={registerModal.isOpen}
-            title="Inscription"
+            isOpen={LoginModal.isOpen}
+            title="Connexion"
             actionLabel="Continuer"
-            onClose={registerModal.close}
+            onClose={LoginModal.close}
             onSubmit={handleSubmit(onSubmit)}
             body={bodyContent}
             footer={footerContent}
@@ -149,4 +148,4 @@ const RegisterModal = () => {
      );
 }
  
-export default RegisterModal;
+export default LoginModal;
